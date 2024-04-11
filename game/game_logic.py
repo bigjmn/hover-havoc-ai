@@ -6,6 +6,7 @@ HEIGHT = 700
 DRAG = 0.98 
 BOUNCE = 1.5
 
+#this is the collision circle radius, graphic extends a bit further 
 HOVER_CRAFT_RADIUS = 30
 BALL_RADIUS = 15
 
@@ -30,12 +31,15 @@ class Mover:
         self.velY = velY 
         self.radius = radius 
 
+    # moves object based on inertia, handle wall bounces
     def resolve_drift(self):
         left_bound = self.radius 
         top_bound = self.radius 
         bottom_bound = HEIGHT - self.radius 
         right_bound = WIDTH - self.radius 
         self.posX += self.velX 
+
+        # handle wall bounce 
         if self.posX >= right_bound:
             self.posX = 2*right_bound-self.posX 
             self.velX = -self.velX*BOUNCE 
@@ -49,6 +53,8 @@ class Mover:
         if self.posY <= top_bound:
             self.posY = 2*top_bound-self.posY
             self.velY = -self.velY*BOUNCE 
+
+        # velocity decays (but might be higher overall based on bounces/input)
         self.velX*=DRAG 
         self.velY*=DRAG 
 
@@ -76,7 +82,8 @@ class HoverCraft(Mover):
         self.theta -= math.pi/80
 
     def thrust(self):
-        # with drag, max velocity is 10 
+        # terminal velocity would be 1, but bounces complicate it 
+        # would be nice to have [-1, 1] domain, but it'll probably be scaled when encoding state space anyway
         self.velX += math.cos(self.theta)*.2
         self.velY += math.sin(self.theta)*.2
 
@@ -208,7 +215,7 @@ class Game:
 
 
 
-
+# draw a rectangle angled at theta, centerX centerY is the middle of the "front"
 def polygon_points(centerX, centerY, circle_rad, theta):
     front_offset_x = math.cos(theta+math.pi/2)*circle_rad
     front_offset_y = math.sin(theta+math.pi/2)*circle_rad
