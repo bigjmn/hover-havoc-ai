@@ -141,6 +141,9 @@ class HoverCraft(Mover):
         self.angleChange = 0 
         self.isThrusting = False 
 
+    def describe(self):
+        return [[self.posX, self.posY], [self.velX, self.velY], self.theta]
+
 
     # for drawing 
     @property 
@@ -175,6 +178,9 @@ class Ball(Mover):
         self.velY = self.start_velY 
 
         self.color = None 
+
+    def describe(self):
+        return [[self.posX, self.posY], [self.velX, self.velY]]
     # for drawing 
     @property 
     def draw_color(self):
@@ -225,12 +231,22 @@ class Game:
     def all_components(self):
         return [self.orangeCraft, self.greenCraft, self.ball]
     
-    def get_craft(self, name):
+    def get_component(self, name):
         if name == "orange":
             return self.orangeCraft 
         if name == "green":
             return self.greenCraft 
+        if name == "ball":
+            return self.ball 
         return None
+    
+    # encode having posession vs opponent having posession vs no one 
+    def describe_posession(self, color):
+        if self.posession_color == None:
+            return 0 
+        if self.posession_color == color:
+            return 1 
+        return -1 
     
     def check_termination(self):
         # returns both if the game is over, and the winner name 
@@ -275,7 +291,17 @@ class Game:
         self.greenCraft.handle_input(greenInput)
 
         self.update_components()
+    
+    # for training 
 
+    def score_order(self, color):
+        if color == "orange": return [self.orange_ticker, self.green_ticker]
+        if color == "green": return [self.green_ticker, self.orange_ticker]
+        raise ValueError("color must be orange or green")
+    # get observation from specific player (color) view
+    def observe_from(self, color):
+        opp_color = opponent_color(color)
+        
     # for drawing 
     def draw_components(self, screen):
         for comp in self.all_components:
@@ -283,6 +309,11 @@ class Game:
             comp.draw_to_screen(screen)
 
 
+# basic helper for designating self vs opponent 
+def opponent_color(color):
+    if color == "orange": return "green"
+    if color == "green": return "orange" 
+    raise ValueError("not a recognized color")
 
 # draw a rectangle angled at theta, centerX centerY is the middle of the "front"
 def polygon_points(centerX, centerY, circle_rad, theta):
