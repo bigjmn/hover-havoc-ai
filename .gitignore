@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 #scrap file 
-scrap 
+scrap.py 
 # image assets 
 assets/
 # C extensions

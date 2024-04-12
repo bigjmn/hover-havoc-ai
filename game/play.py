@@ -24,6 +24,7 @@ def run_game():
     # loop until close 
     done = False 
     clock = pygame.time.Clock()
+    pyfont = pygame.font.Font(pygame.font.get_default_font(), 42)
 
     while not done: 
         screen.fill((47,121,140))
@@ -36,7 +37,24 @@ def run_game():
 
         orange_inputs, green_inputs = inputVecs()
         game.resolve_tick(orange_inputs, green_inputs)
+
         game.draw_components(play_area)
+
+        #draw scores 
+        orangeScore = str(game.orange_ticker//60).zfill(2)
+        greenScore = str(game.green_ticker//60).zfill(2)
+        greenSurf = pygame.font.Font.render(pyfont, greenScore, True, "green", (103,189,211))
+
+
+        orangeSurf = pygame.font.Font.render(pyfont, orangeScore, True, "orange", (103,189,211))
+
+        # orangeSurf = pygame.font.Font().render(orangeScore, True, "orange", background=(103,189,211))
+        # greenSurf = pygame.font.Font().render(greenScore, True, "green", background=(103,189,211))
+
+        pygame.display.get_surface().blit(orangeSurf, (WIDTH/2, 150+HEIGHT))
+        pygame.display.get_surface().blit(greenSurf, (WIDTH/2+200, 150+HEIGHT))
+
+        
 
         pygame.display.flip()
 

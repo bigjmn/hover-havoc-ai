@@ -1,6 +1,6 @@
 import math 
 import pygame
-
+from statistics import mean
 WIDTH = 700 
 HEIGHT = 700 
 DRAG = 0.98 
@@ -143,6 +143,13 @@ class HoverCraft(Mover):
 
     def describe(self):
         return [[self.posX, self.posY], [self.velX, self.velY], self.theta]
+    
+    def dict_describe(self):
+        return {
+            "position": [self.posX, self.posY],
+            "velocity": [self.velX, self.velY],
+            "angle": self.theta 
+        }
 
 
     # for drawing 
@@ -181,6 +188,13 @@ class Ball(Mover):
 
     def describe(self):
         return [[self.posX, self.posY], [self.velX, self.velY]]
+    
+    #human readable version, which would need to be flattened 
+    def dict_describe(self):
+        return {
+            "position": [self.posX, self.posY],
+            "velocity": [self.velX, self.velY],
+        }
     # for drawing 
     @property 
     def draw_color(self):
@@ -224,6 +238,9 @@ class Game:
         self.orange_ticker = 0 
         self.green_ticker = 0
 
+        # for final reward in training?
+        self.posession_hist = []
+
     @property
     def posession_color(self):
         return self.ball.color 
@@ -263,6 +280,7 @@ class Game:
 
         self.orange_ticker = 0 
         self.green_ticker = 0
+        self.posession_hist = []
 
     
     def update_components(self):
@@ -282,10 +300,14 @@ class Game:
             
 
     def resolve_tick(self, orangeInput, greenInput):
+        if self.posession_color == None:
+            self.posession_hist.append("none")
         if self.posession_color == "green":
             self.green_ticker += 1 
+            self.posession_hist.append("green")
         if self.posession_color == "orange":
             self.orange_ticker += 1
+            self.posession_hist.append("orange")
 
         self.orangeCraft.handle_input(orangeInput)
         self.greenCraft.handle_input(greenInput)
@@ -293,6 +315,9 @@ class Game:
         self.update_components()
     
     # for training 
+    def evaluate_posession_history(self, color):
+        value_history = list(map(lambda x: 1 if x == color else 0 if x == "None" else -1,  self.posession_hist))
+        return mean(value_history)
 
     def score_order(self, color):
         if color == "orange": return [self.orange_ticker, self.green_ticker]
@@ -301,8 +326,25 @@ class Game:
     # get observation from specific player (color) view
     def observe_from(self, color):
         opp_color = opponent_color(color)
+
+        own_descript = self.get_component(color).describe()
+        opp_descript = self.get_component(opp_color).describe()
+
+        ball_descript = self.get_component("ball").describe()
+        posession_descript = self.describe_posession(color)
+        [_player_score, _opp_score] = self.score_order(color)
+
+        return {
+            "player_craft": own_descript,
+            "opponent_craft": opp_descript,
+            "ball": ball_descript,
+            "posession": posession_descript,
+            "player_score": _player_score,
+            "opponent_score": _opp_score
+
+        }
         
-    # for drawing 
+    # for drawing     
     def draw_components(self, screen):
         for comp in self.all_components:
             assert isinstance(comp, Mover)
@@ -338,4 +380,5 @@ def polygon_points(centerX, centerY, circle_rad, theta):
             (front_left_x, front_left_y), 
             (back_left_x, back_left_y), 
             (back_right_x, back_right_y)]
+    
     
