@@ -31,6 +31,12 @@ class Mover:
         self.velY = velY 
         self.radius = radius 
 
+        # save start conditions for reset 
+        self.start_posX = posX 
+        self.start_posY = posY 
+        self.start_velX = velX 
+        self.start_velY = velY 
+
     # moves object based on inertia, handle wall bounces
     def resolve_drift(self):
         left_bound = self.radius 
@@ -58,7 +64,12 @@ class Mover:
         self.velX*=DRAG 
         self.velY*=DRAG 
 
-    #this must be overridden in subclasses 
+    # methods that must be implemented in subclasses 
+    def move(self):
+        raise NotImplementedError("subclass must have move method")
+    def reset_component(self):
+        raise NotImplementedError("subclass must have reset method")
+    
     def draw_to_screen(self, screen):
         raise NotImplementedError("subclass must have draw method")
         
@@ -74,12 +85,23 @@ class HoverCraft(Mover):
         self.isThrusting = False 
         # will be 1, 0, or -1 
         self.angleChange = 0
+
+        # initials for resetting 
+        self.start_theta = theta 
+
+
+        
+        
     
     def turnClock(self):
-        self.theta += math.pi/80
+        self.theta += math.pi/80 
+        if self.theta >= 2*math.pi:
+            self.theta -= 2*math.pi 
 
     def turnCounterClock(self):
         self.theta -= math.pi/80
+        if self.theta < 0:
+            self.theta += 2*math.pi
 
     def thrust(self):
         # terminal velocity would be 1, but bounces complicate it 
@@ -108,6 +130,18 @@ class HoverCraft(Mover):
             self.turnCounterClock()
         self.resolve_drift()
 
+    # for training 
+    def reset_component(self):
+        self.posX = self.start_posX 
+        self.posY = self.start_posY 
+        self.velX = self.start_velX
+        self.velY = self.start_velY 
+        self.theta = self.start_theta 
+
+        self.angleChange = 0 
+        self.isThrusting = False 
+
+
     # for drawing 
     @property 
     def border_points(self):
@@ -133,6 +167,14 @@ class Ball(Mover):
     def move(self):
         self.resolve_drift()
 
+    #for training 
+    def reset_component(self):
+        self.posX = self.start_posX 
+        self.posY = self.start_posY 
+        self.velX = self.start_velX
+        self.velY = self.start_velY 
+
+        self.color = None 
     # for drawing 
     @property 
     def draw_color(self):
@@ -183,6 +225,30 @@ class Game:
     def all_components(self):
         return [self.orangeCraft, self.greenCraft, self.ball]
     
+    def get_craft(self, name):
+        if name == "orange":
+            return self.orangeCraft 
+        if name == "green":
+            return self.greenCraft 
+        return None
+    
+    def check_termination(self):
+        # returns both if the game is over, and the winner name 
+        if self.orange_ticker >= 3600:
+            return True, "orange"
+        if self.green_ticker >= 3600:
+            return True, "green"
+        return False, None 
+    
+    def reset_game(self):
+        for comp in self.all_components:
+            assert isinstance(comp, Mover)
+            comp.reset_component()
+
+        self.orange_ticker = 0 
+        self.green_ticker = 0
+
+    
     def update_components(self):
         if determine_bounce(self.orangeCraft, self.greenCraft):
             resolve_bounce(self.orangeCraft, self.greenCraft)
@@ -195,7 +261,9 @@ class Game:
             resolve_bounce(self.greenCraft, self.ball)
 
         for comp in self.all_components:
+            assert isinstance(comp, Mover)
             comp.move()
+            
 
     def resolve_tick(self, orangeInput, greenInput):
         if self.posession_color == "green":
@@ -211,6 +279,7 @@ class Game:
     # for drawing 
     def draw_components(self, screen):
         for comp in self.all_components:
+            assert isinstance(comp, Mover)
             comp.draw_to_screen(screen)
 
 
